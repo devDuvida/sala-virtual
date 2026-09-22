@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-950 text-slate-100 dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkSpace Pro - Escritório Virtual de Equipes</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+        }
+        
+        /* Custom Glassmorphism */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Scrollbar aesthetics */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(71, 85, 105, 1);
+        }
+
+        /* Canvas cursor states */
+        canvas {
+            touch-action: none;
+        }
+
+        /* Animated Pulsing Proximity Rings */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .pulse-proximity {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="h-full overflow-hidden bg-slate-950 text-slate-100 flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-14 glass-panel border-b border-slate-800/80 px-4 flex items-center justify-between z-30 shrink-0">
+        <!-- Brand / Office Selector -->
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
+                <i class="fa-solid fa-building-user text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-sm tracking-wide text-slate-100 flex items-center gap-2">
+                    WorkSpace Pro <span class="bg-teal-500/20 text-teal-300 text-[10px] px-2 py-0.5 rounded-full border border-teal-500/30">HQ Virtual</span>
+                </h1>
+                <p class="text-[11px] text-slate-400">Equipe de Inovação Digital</p>
+            </div>
+        </div>
+
+        <!-- Quick Status & Controls -->
+        <div class="flex items-center space-x-3">
+            <!-- User Profile & Status Selector -->
+            <div class="flex items-center space-x-2 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
+                <button onclick="openAvatarModal()" class="relative group" title="Customizar Avatar">
+                    <div id="headerAvatarPreview" class="w-7 h-7 rounded-full bg-teal-500 border-2 border-slate-800 flex items-center justify-center text-xs font-bold text-slate-950 shadow">
+                        U
+                    </div>
+                    <span class="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-slate-900" id="headerStatusDot"></span>
+                </button>
+                <select id="userStatusSelect" onchange="updateUserStatus(this.value)" class="bg-transparent text-xs text-slate-200 font-medium focus:outline-none cursor-pointer pr-1">
+                    <option value="Online" class="bg-slate-900 text-slate-200">🟢 Online</option>
+                    <option value="Em Reunião" class="bg-slate-900 text-slate-200">🔴 Em Reunião</option>
+                    <option value="Foco Total" class="bg-slate-900 text-slate-200">💜 Foco Total</option>
+                    <option value="Almoço" class="bg-slate-900 text-slate-200">🍔 Em Pausa / Almoço</option>
+                    <option value="Ausente" class="bg-slate-900 text-slate-200">🌙 Ausente</option>
+                </select>
+            </div>
+
+            <!-- Mic / Cam Toggles (Simulated) -->
+            <div class="flex items-center space-x-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                <button id="toggleMicBtn" onclick="toggleMedia('mic')" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:bg-slate-800 transition" title="Microfone (Simulado)">
+                    <i class="fa-solid fa-microphone text-xs"></i>
+                </button>
+                <button id="toggleCamBtn" onclick="toggleMedia('cam')" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:bg-slate-800 transition" title="Câmera (Simulada)">
+                    <i class="fa-solid fa-video text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Pomodoro Quick Widget -->
+            <div class="hidden md:flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+                <i class="fa-regular fa-clock text-indigo-400"></i>
+                <span id="pomoTimeDisplay" class="font-mono text-indigo-200 font-bold">25:00</span>
+                <button onclick="togglePomodoro()" id="pomoPlayBtn" class="text-slate-400 hover:text-emerald-400 transition ml-1">
+                    <i class="fa-solid fa-play text-[10px]"></i>
+                </button>
+            </div>
+
+            <!-- Lo-fi Music Audio Synth Toggle -->
+            <button id="audioSynthBtn" onclick="toggleAmbientAudio()" class="px-3 py-1.5 rounded-xl text-xs bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800 flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-music text-teal-400"></i>
+                <span id="audioSynthLabel" class="hidden sm:inline">Som Lo-Fi</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main App Layout -->
+    <div class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Center Workspace: Interactive Canvas -->
+        <main class="flex-1 flex flex-col relative overflow-hidden bg-slate-950">
+            <!-- Floating Zone Alert Banner -->
+            <div id="zoneBanner" class="absolute top-3 left-1/2 -translate-x-1/2 z-10 glass-panel px-4 py-1.5 rounded-full text-xs font-semibold text-teal-300 border border-teal-500/30 flex items-center gap-2 shadow-xl transition-all duration-300 opacity-0 pointer-events-none">
+                <i class="fa-solid fa-location-dot text-teal-400"></i>
+                <span id="zoneBannerText">Recepção do Escritório</span>
+            </div>
+
+            <!-- Quick Keyboard Controls Hint Overlay -->
+            <div class="absolute bottom-4 left-4 z-10 glass-panel px-3 py-2 rounded-xl text-[11px] text-slate-400 border border-slate-800 hidden sm:flex items-center gap-3 shadow-lg pointer-events-none">
+                <div class="flex items-center gap-1">
+                    <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200 font-mono">W</kbd>
+                    <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200 font-mono">A</kbd>
+                    <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200 font-mono">S</kbd>
+                    <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200 font-mono">D</kbd>
+                    <span>Mover</span>
+                </div>
+                <div class="w-px h-3 bg-slate-800"></div>
+                <div><i class="fa-solid fa-mouse-pointer text-slate-500 mr-1"></i> Clique para Caminhar / Interagir</div>
+            </div>
+
+            <!-- Sit / Stand Action Button Overlay -->
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+                <button id="sitStandBtn" onclick="toggleSittingState()" class="hidden glass-panel px-4 py-2 rounded-xl text-xs font-semibold text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/20 shadow-xl transition items-center gap-2">
+                    <i class="fa-solid fa-chair text-emerald-400"></i>
+                    <span id="sitBtnText">Sentar na Cadeira</span>
+                </button>
+            </div>
+
+            <!-- HTML5 Virtual Office Canvas -->
+            <div class="flex-1 w-full h-full flex items-center justify-center p-2">
+                <canvas id="officeCanvas" class="rounded-2xl border border-slate-800 shadow-2xl bg-slate-900 w-full h-full object-contain"></canvas>
+            </div>
+        </main>
+
+        <!-- Right Modular Sidebar Panel -->
+        <aside id="sidebar" class="w-80 md:w-96 glass-panel border-l border-slate-800/80 flex flex-col z-20 transition-all duration-300 shrink-0">
+            <!-- Sidebar Navigation Tabs -->
+            <div class="flex items-center justify-between border-b border-slate-800 px-2 pt-2 bg-slate-900/50">
+                <button onclick="switchTab('directory')" id="tabBtn-directory" class="sidebar-tab flex-1 py-2 text-xs font-semibold text-teal-400 border-b-2 border-teal-500 transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-users"></i> Equipas
+                </button>
+                <button onclick="switchTab('chat')" id="tabBtn-chat" class="sidebar-tab flex-1 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5 relative">
+                    <i class="fa-solid fa-comments"></i> Chat
+                    <span id="chatBadge" class="hidden w-2 h-2 rounded-full bg-teal-400"></span>
+                </button>
+                <button onclick="switchTab('kanban')" id="tabBtn-kanban" class="sidebar-tab flex-1 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-kanban"></i> Tarefas
+                </button>
+                <button onclick="switchTab('whiteboard')" id="tabBtn-whiteboard" class="sidebar-tab flex-1 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-pen-ruler"></i> Lousa
+                </button>
+            </div>
+
+            <!-- TAB 1: TEAM DIRECTORY -->
+            <div id="tabContent-directory" class="tab-pane flex-1 p-4 overflow-y-auto space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
+                    <span>Membros Ativos (<span id="activeMemberCount">5</span>)</span>
+                    <span class="text-[10px] text-teal-400 font-medium"><i class="fa-solid fa-circle text-[8px] animate-pulse"></i> Servidor Online</span>
+                </div>
+                <div id="directoryList" class="space-y-2">
+                    <!-- Dynamic rendering of team bots & player -->
+                </div>
+            </div>
+
+            <!-- TAB 2: CHAT SYSTEM -->
+            <div id="tabContent-chat" class="tab-pane hidden flex-1 flex flex-col overflow-hidden">
+                <!-- Channel Selector Header -->
+                <div class="px-3 py-2 border-b border-slate-800 bg-slate-900/40 flex items-center justify-between">
+                    <div class="flex items-center space-x-1 overflow-x-auto text-xs">
+                        <button onclick="setChatChannel('geral')" id="chanBtn-geral" class="px-2.5 py-1 rounded-lg font-medium bg-teal-500/20 text-teal-300 border border-teal-500/30">#geral</button>
+                        <button onclick="setChatChannel('projetos')" id="chanBtn-projetos" class="px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:bg-slate-800">#projetos</button>
+                        <button onclick="setChatChannel('cafe')" id="chanBtn-cafe" class="px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:bg-slate-800">☕ #cafe</button>
+                        <button onclick="setChatChannel('proximidade')" id="chanBtn-proximidade" class="px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:bg-slate-800 flex items-center gap-1">
+                            <i class="fa-solid fa-walkie-talkie text-[10px]"></i> Proximidade
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div id="chatMessages" class="flex-1 p-3 overflow-y-auto space-y-3 text-xs">
+                    <!-- Chat messages injected dynamically -->
+                </div>
+
+                <!-- Input Box -->
+                <form onsubmit="sendChatMessage(event)" class="p-3 border-t border-slate-800 bg-slate-900/60 flex items-center gap-2">
+                    <input type="text" id="chatInput" placeholder="Digitar mensagem em #geral..." class="flex-1 bg-slate-800/80 border border-slate-700/60 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition">
+                    <button type="submit" class="w-9 h-9 rounded-xl bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold flex items-center justify-center transition shadow-md">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- TAB 3: KANBAN TASK BOARD -->
+            <div id="tabContent-kanban" class="tab-pane hidden flex-1 p-3 overflow-y-auto flex flex-col space-y-3">
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Projetos da Equipe</h3>
+                    <button onclick="openAddTaskModal()" class="px-2.5 py-1 bg-teal-500 hover:bg-teal-600 text-slate-950 text-xs font-bold rounded-lg transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus text-[10px]"></i> Nova Tarefa
+                    </button>
+                </div>
+
+                <!-- Kanban Columns -->
+                <div class="space-y-4 flex-1">
+                    <!-- Column: To Do -->
+                    <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                        <div class="flex items-center justify-between text-xs font-semibold text-slate-300 mb-2">
+                            <span class="flex items-center gap-1.5"><i class="fa-regular fa-circle text-amber-400 text-[10px]"></i> A Fazer</span>
+                            <span id="todoCount" class="bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">0</span>
+                        </div>
+                        <div id="col-todo" class="space-y-2 min-h-[60px]" ondrop="dropKanban(event, 'todo')" ondragover="allowDropKanban(event)"></div>
+                    </div>
+
+                    <!-- Column: In Progress -->
+                    <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                        <div class="flex items-center justify-between text-xs font-semibold text-slate-300 mb-2">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-spinner text-indigo-400 text-[10px] animate-spin"></i> Em Progresso</span>
+                            <span id="inProgressCount" class="bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">0</span>
+                        </div>
+                        <div id="col-inProgress" class="space-y-2 min-h-[60px]" ondrop="dropKanban(event, 'inProgress')" ondragover="allowDropKanban(event)"></div>
+                    </div>
+
+                    <!-- Column: Done -->
+                    <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                        <div class="flex items-center justify-between text-xs font-semibold text-slate-300 mb-2">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> Concluído</span>
+                            <span id="doneCount" class="bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">0</span>
+                        </div>
+                        <div id="col-done" class="space-y-2 min-h-[60px]" ondrop="dropKanban(event, 'done')" ondragover="allowDropKanban(event)"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: INTERACTIVE WHITEBOARD -->
+            <div id="tabContent-whiteboard" class="tab-pane hidden flex-1 p-3 flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-200">Lousa de Ideias da Equipe</span>
+                    <button onclick="clearWhiteboard()" class="text-[11px] text-rose-400 hover:text-rose-300 transition">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Limpar
+                    </button>
+                </div>
+
+                <!-- Whiteboard Toolbar -->
+                <div class="flex items-center justify-between bg-slate-900 p-2 rounded-xl border border-slate-800 mb-2 gap-1">
+                    <div class="flex items-center space-x-1">
+                        <button onclick="setWBTool('pen')" id="wbTool-pen" class="w-7 h-7 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/40 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="setWBTool('eraser')" id="wbTool-eraser" class="w-7 h-7 rounded-lg hover:bg-slate-800 text-slate-400 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-eraser"></i>
+                        </button>
+                        <button onclick="addStickyNotePrompt()" class="w-7 h-7 rounded-lg hover:bg-slate-800 text-amber-300 flex items-center justify-center text-xs" title="Adicionar Post-it">
+                            <i class="fa-solid fa-note-sticky"></i>
+                        </button>
+                    </div>
+
+                    <!-- Colors -->
+                    <div class="flex items-center space-x-1">
+                        <button onclick="setWBColor('#38bdf8')" class="w-5 h-5 rounded-full bg-sky-400 ring-2 ring-transparent hover:scale-110 transition" style="background:#38bdf8"></button>
+                        <button onclick="setWBColor('#4ade80')" class="w-5 h-5 rounded-full bg-emerald-400 ring-2 ring-transparent hover:scale-110 transition" style="background:#4ade80"></button>
+                        <button onclick="setWBColor('#f43f5e')" class="w-5 h-5 rounded-full bg-rose-500 ring-2 ring-transparent hover:scale-110 transition" style="background:#f43f5e"></button>
+                        <button onclick="setWBColor('#fbbf24')" class="w-5 h-5 rounded-full bg-amber-400 ring-2 ring-transparent hover:scale-110 transition" style="background:#fbbf24"></button>
+                        <button onclick="setWBColor('#f8fafc')" class="w-5 h-5 rounded-full bg-slate-100 ring-2 ring-transparent hover:scale-110 transition" style="background:#f8fafc"></button>
+                    </div>
+                </div>
+
+                <!-- Whiteboard Drawing Canvas Box -->
+                <div class="flex-1 relative rounded-xl overflow-hidden border border-slate-800 bg-slate-900/90 shadow-inner">
+                    <canvas id="whiteboardCanvas" class="w-full h-full cursor-crosshair"></canvas>
+                    <div id="stickyNotesContainer" class="absolute inset-0 pointer-events-none"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- MODAL 1: AVATAR CUSTOMIZER -->
+    <div id="avatarModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="glass-panel w-full max-w-sm rounded-2xl p-5 border border-slate-700 shadow-2xl relative">
+            <button onclick="closeAvatarModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h2 class="text-base font-bold text-slate-100 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-user-gear text-teal-400"></i> Personalizar Seu Avatar
+            </h2>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1 font-medium">Seu Nome</label>
+                    <input type="text" id="avatarNameInput" value="Você" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1 font-medium">Cor Principal do Vestuário</label>
+                    <div class="flex items-center gap-2">
+                        <input type="color" id="avatarColorInput" value="#14b8a6" class="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0">
+                        <span class="text-slate-400 text-[11px]">Escolha a cor da sua roupa no mapa</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1 font-medium">Acessório</label>
+                    <select id="avatarAccessorySelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+                        <option value="none">Nenhum</option>
+                        <option value="glasses">👓 Óculos Estilosos</option>
+                        <option value="headphones">🎧 Headset Gamer</option>
+                        <option value="hat">🧢 Boné de Equipe</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2">
+                    <button onclick="saveAvatarSettings()" class="w-full py-2.5 bg-teal-500 hover:bg-teal-600 font-bold text-slate-950 rounded-xl transition shadow-lg">
+                        Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ADD KANBAN TASK -->
+    <div id="addTaskModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="glass-panel w-full max-w-sm rounded-2xl p-5 border border-slate-700 shadow-2xl relative">
+            <button onclick="closeAddTaskModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h2 class="text-base font-bold text-slate-100 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-teal-400"></i> Criar Nova Tarefa
+            </h2>
+
+            <form onsubmit="handleCreateTask(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1 font-medium">Título da Tarefa</label>
+                    <input type="text" id="taskTitleInput" required placeholder="Ex: Ajustar UX da Sala de Reunião" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1 font-medium">Atribuído a</label>
+                    <select id="taskAssigneeSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+                        <option value="Você">Você (Membro)</option>
+                        <option value="Ana (UI/UX)">Ana (UI/UX)</option>
+                        <option value="Carlos (Dev Lead)">Carlos (Dev Lead)</option>
+                        <option value="Mariana (PM)">Mariana (PM)</option>
+                        <option value="Lucas (Marketing)">Lucas (Marketing)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1 font-medium">Prioridade</label>
+                    <select id="taskPrioritySelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+                        <option value="Média">🟡 Média</option>
+                        <option value="Alta">🔴 Alta</option>
+                        <option value="Baixa">🟢 Baixa</option>
+                    </select>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-2.5 bg-teal-500 hover:bg-teal-600 font-bold text-slate-950 rounded-xl transition shadow-lg">
+                        Adicionar ao Quadro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. AUDIO SYNTHESIZER (Pure Web Audio API - Sound Effects & Lo-Fi Synth)
+           ========================================================================== */
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.isLofiPlaying = false;
+                this.lofiInterval = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            // Synth Footstep Sound
+            playFootstep() {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.08);
+                    
+                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.08);
+                } catch(e) {}
+            }
+
+            // Chat Notification Chime
+            playChime() {
+                try {
+                    this.init();
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                    
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } catch(e) {}
+            }
+
+            // Coffee Sip Sound
+            playCoffeeSound() {
+                try {
+                    this.init();
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.linearRampToValueAtTime(600, now + 0.2);
+                    
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } catch(e) {}
+            }
+
+            // Synthesized Lo-Fi Ambient Chord Generator
+            toggleLofiAmbient() {
+                this.init();
+                if (this.isLofiPlaying) {
+                    this.isLofiPlaying = false;
+                    if (this.lofiInterval) clearInterval(this.lofiInterval);
+                    document.getElementById('audioSynthLabel').innerText = 'Som Lo-Fi';
+                    document.getElementById('audioSynthBtn').classList.remove('bg-teal-500/20', 'text-teal-300');
+                    return;
+                }
+
+                this.isLofiPlaying = true;
+                document.getElementById('audioSynthLabel').innerText = 'Tocando Lo-Fi...';
+                document.getElementById('audioSynthBtn').classList.add('bg-teal-500/20', 'text-teal-300');
+
+                const chords = [
+                    [261.63, 329.63, 392.00, 493.88], // C maj7
+                    [220.00, 261.63, 329.63, 392.00], // A min7
+                    [174.61, 220.00, 261.63, 329.63], // F maj7
+                    [196.00, 246.94, 293.66, 349.23]  // G7
+                ];
+
+                let chordIdx = 0;
+                const playChord = () => {
+                    if (!this.isLofiPlaying) return;
+                    const notes = chords[chordIdx];
+                    chordIdx = (chordIdx + 1) % chords.length;
+
+                    notes.forEach((freq) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.value = freq;
+
+                        const now = this.ctx.currentTime;
+                        gain.gain.setValueAtTime(0, now);
+                        gain.gain.linearRampToValueAtTime(0.02, now + 1);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.8);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+
+                        osc.start(now);
+                        osc.stop(now + 3.9);
+                    });
+                };
+
+                playChord();
+                this.lofiInterval = setInterval(playChord, 4000);
+            }
+        }
+
+        const audio = new AudioEngine();
+
+        function toggleAmbientAudio() {
+            audio.toggleLofiAmbient();
+        }
+
+        /* ==========================================================================
+           2. VIRTUAL OFFICE CANVAS ENGINE (Map Layout, Avatars, Bots & Collisions)
+           ========================================================================== */
+        const canvas = document.getElementById('officeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Canvas Virtual Dimensions
+        const MAP_WIDTH = 1200;
+        const MAP_HEIGHT = 800;
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = MAP_WIDTH;
+            canvas.height = MAP_HEIGHT;
+        }
+
+        // Office Zones Definition
+        const ZONES = [
+            { id: 'reception', name: 'Recepção Principal', x: 50, y: 50, w: 320, h: 220, color: 'rgba(20, 184, 166, 0.05)' },
+            { id: 'workstations', name: 'Estações de Trabalho', x: 420, y: 50, w: 730, h: 320, color: 'rgba(99, 102, 241, 0.05)' },
+            { id: 'meeting', name: 'Sala de Reunião Principal', x: 50, y: 320, w: 320, h: 430, color: 'rgba(244, 63, 94, 0.05)' },
+            { id: 'lounge', name: 'Lounge / Café', x: 420, y: 420, w: 400, h: 330, color: 'rgba(245, 158, 11, 0.05)' },
+            { id: 'focus', name: 'Pods de Foco Silencioso', x: 860, y: 420, w: 290, h: 330, color: 'rgba(168, 85, 247, 0.05)' },
+        ];
+
+        // Office Furniture & Collision Obstacles
+        const OBSTACLES = [
+            // Outer Walls
+            { x: 40, y: 40, w: 1120, h: 10 },
+            { x: 40, y: 750, w: 1120, h: 10 },
+            { x: 40, y: 40, w: 10, h: 720 },
+            { x: 1150, y: 40, w: 10, h: 720 },
+
+            // Reception Counter
+            { x: 120, y: 120, w: 180, h: 40, label: 'Balcão de Entrada' },
+
+            // Meeting Room Wall dividers
+            { x: 380, y: 320, w: 10, h: 430 },
+            { x: 50, y: 310, w: 330, h: 10 },
+
+            // Meeting Room Table
+            { x: 120, y: 460, w: 180, h: 140, label: 'Mesa de Reunião', type: 'meeting_table' },
+
+            // Workstation Desks (6 Desks)
+            { x: 460, y: 100, w: 140, h: 70, label: 'Mesa 1' },
+            { x: 680, y: 100, w: 140, h: 70, label: 'Mesa 2' },
+            { x: 900, y: 100, w: 140, h: 70, label: 'Mesa 3' },
+            { x: 460, y: 220, w: 140, h: 70, label: 'Mesa 4' },
+            { x: 680, y: 220, w: 140, h: 70, label: 'Mesa 5' },
+            { x: 900, y: 220, w: 140, h: 70, label: 'Mesa 6' },
+
+            // Lounge Bar & Coffee Machine
+            { x: 460, y: 460, w: 200, h: 50, label: 'Máquina de Café & Bar', type: 'coffee' },
+
+            // Focus Pod Partitions
+            { x: 840, y: 420, w: 10, h: 330 },
+            { x: 850, y: 580, w: 300, h: 10 },
+        ];
+
+        // Interactive Chairs (for sitting mechanic)
+        const CHAIRS = [
+            // Workstation Chairs
+            { id: 'c1', x: 530, y: 80, targetStatus: 'Trabalhando na Mesa', occupiedBy: null },
+            { id: 'c2', x: 750, y: 80, targetStatus: 'Trabalhando na Mesa', occupiedBy: null },
+            { id: 'c3', x: 970, y: 80, targetStatus: 'Trabalhando na Mesa', occupiedBy: null },
+            { id: 'c4', x: 530, y: 300, targetStatus: 'Trabalhando na Mesa', occupiedBy: null },
+            { id: 'c5', x: 750, y: 300, targetStatus: 'Trabalhando na Mesa', occupiedBy: null },
+            { id: 'c6', x: 970, y: 300, targetStatus: 'Trabalhando na Mesa', occupiedBy: null },
+
+            // Meeting Room Chairs
+            { id: 'cm1', x: 210, y: 430, targetStatus: 'Em Reunião', occupiedBy: null },
+            { id: 'cm2', x: 210, y: 620, targetStatus: 'Em Reunião', occupiedBy: null },
+            { id: 'cm3', x: 90, y: 530, targetStatus: 'Em Reunião', occupiedBy: null },
+            { id: 'cm4', x: 320, y: 530, targetStatus: 'Em Reunião', occupiedBy: null },
+
+            // Lounge Couches
+            { id: 'cl1', x: 520, y: 560, targetStatus: 'Tomando Café', occupiedBy: null },
+            { id: 'cl2', x: 620, y: 560, targetStatus: 'Tomando Café', occupiedBy: null },
+
+            // Focus Pods Chairs
+            { id: 'cf1', x: 990, y: 500, targetStatus: 'Foco Total', occupiedBy: null },
+            { id: 'cf2', x: 990, y: 660, targetStatus: 'Foco Total', occupiedBy: null },
+        ];
+
+        // Player Avatar Definition
+        const player = {
+            id: 'player',
+            name: 'Você',
+            role: 'Desenvolvedor',
+            x: 200,
+            y: 180,
+            radius: 16,
+            color: '#14b8a6',
+            accessory: 'glasses',
+            status: 'Online',
+            speed: 3.5,
+            targetX: null,
+            targetY: null,
+            isSitting: false,
+            seatedChair: null,
+            speechBubble: null,
+            speechTimer: null
+        };
+
+        // Intelligent AI Teammate Bots
+        const npcs = [
+            {
+                id: 'ana',
+                name: 'Ana',
+                role: 'UI/UX Designer',
+                x: 530,
+                y: 80,
+                radius: 16,
+                color: '#ec4899',
+                accessory: 'headphones',
+                status: 'Trabalhando na Mesa',
+                speechBubble: 'Ajustando protótipo do Design System ✨',
+                speechTimer: 20000,
+                targetX: null,
+                targetY: null,
+                isSitting: true,
+                chairId: 'c1'
+            },
+            {
+                id: 'carlos',
+                name: 'Carlos',
+                role: 'Dev Lead',
+                x: 210,
+                y: 430,
+                radius: 16,
+                color: '#3b82f6',
+                accessory: 'glasses',
+                status: 'Em Reunião',
+                speechBubble: 'Revisando Pull Request do backend...',
+                speechTimer: 20000,
+                targetX: null,
+                targetY: null,
+                isSitting: true,
+                chairId: 'cm1'
+            },
+            {
+                id: 'mariana',
+                name: 'Mariana',
+                role: 'Product Manager',
+                x: 520,
+                y: 560,
+                radius: 16,
+                color: '#f59e0b',
+                accessory: 'hat',
+                status: 'Tomando Café',
+                speechBubble: 'Quem topa um café rápido antes da Daily? ☕',
+                speechTimer: 20000,
+                targetX: null,
+                targetY: null,
+                isSitting: true,
+                chairId: 'cl1'
+            },
+            {
+                id: 'lucas',
+                name: 'Lucas',
+                role: 'Growth Marketing',
+                x: 990,
+                y: 500,
+                radius: 16,
+                color: '#8b5cf6',
+                accessory: 'none',
+                status: 'Foco Total',
+                speechBubble: 'Analisando métricas de lançamento 📊',
+                speechTimer: 20000,
+                targetX: null,
+                targetY: null,
+                isSitting: true,
+                chairId: 'cf1'
+            }
+        ];
+
+        // Mark chair occupations initially
+        npcs.forEach(npc => {
+            if (npc.chairId) {
+                const chair = CHAIRS.find(c => c.id === npc.chairId);
+                if (chair) chair.occupiedBy = npc.id;
+            }
+        });
+
+        // Input Keyboard state
+        const keys = {};
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(e.key.toLowerCase())) {
+                player.targetX = null; // Cancel mouse destination if using keys
+                player.targetY = null;
+                if (player.isSitting) standUp();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // Click to Walk or Interact
+        canvas.addEventListener('pointerdown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = MAP_WIDTH / rect.width;
+            const scaleY = MAP_HEIGHT / rect.height;
+            const clickX = (e.clientX - rect.left) * scaleX;
+            const clickY = (e.clientY - rect.top) * scaleY;
+
+            // Check if clicked on a chair
+            const clickedChair = CHAIRS.find(c => Math.hypot(c.x - clickX, c.y - clickY) < 25);
+            if (clickedChair) {
+                if (!clickedChair.occupiedBy || clickedChair.occupiedBy === player.id) {
+                    player.targetX = clickedChair.x;
+                    player.targetY = clickedChair.y;
+                    player.pendingChair = clickedChair;
+                    return;
+                }
+            }
+
+            // Normal click navigation
+            player.targetX = clickX;
+            player.targetY = clickY;
+            player.pendingChair = null;
+            if (player.isSitting) standUp();
+        });
+
+        function checkCollision(newX, newY, radius) {
+            for (let obs of OBSTACLES) {
+                if (
+                    newX + radius > obs.x &&
+                    newX - radius < obs.x + obs.w &&
+                    newY + radius > obs.y &&
+                    newY - radius < obs.y + obs.h
+                ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function updatePlayer() {
+            if (player.isSitting) return;
+
+            let moveX = 0;
+            let moveY = 0;
+
+            if (keys['w'] || keys['arrowup']) moveY -= player.speed;
+            if (keys['s'] || keys['arrowdown']) moveY += player.speed;
+            if (keys['a'] || keys['arrowleft']) moveX -= player.speed;
+            if (keys['d'] || keys['arrowright']) moveX += player.speed;
+
+            // Mouse Waypoint Pathing
+            if (player.targetX !== null && player.targetY !== null) {
+                const dx = player.targetX - player.x;
+                const dy = player.targetY - player.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist > 4) {
+                    moveX = (dx / dist) * player.speed;
+                    moveY = (dy / dist) * player.speed;
+                } else {
+                    player.x = player.targetX;
+                    player.y = player.targetY;
+                    player.targetX = null;
+                    player.targetY = null;
+
+                    if (player.pendingChair) {
+                        sitOnChair(player.pendingChair);
+                        player.pendingChair = null;
+                    }
+                }
+            }
+
+            if (moveX !== 0 || moveY !== 0) {
+                let nextX = player.x + moveX;
+                let nextY = player.y + moveY;
+
+                // Axis sliding collision check
+                if (!checkCollision(nextX, player.y, player.radius)) {
+                    player.x = nextX;
+                }
+                if (!checkCollision(player.x, nextY, player.radius)) {
+                    player.y = nextY;
+                }
+
+                // Audio footstep ticker
+                if (Math.random() < 0.1) audio.playFootstep();
+
+                checkCurrentZone();
+                checkNearbyInteractions();
+            }
+        }
+
+        function sitOnChair(chair) {
+            player.x = chair.x;
+            player.y = chair.y;
+            player.isSitting = true;
+            player.seatedChair = chair;
+            chair.occupiedBy = player.id;
+
+            updateUserStatus(chair.targetStatus);
+            document.getElementById('sitStandBtn').classList.remove('hidden');
+            document.getElementById('sitBtnText').innerText = 'Levantar da Cadeira';
+        }
+
+        function standUp() {
+            if (!player.isSitting) return;
+            if (player.seatedChair) {
+                player.seatedChair.occupiedBy = null;
+                player.seatedChair = null;
+            }
+            player.isSitting = false;
+            updateUserStatus('Online');
+            document.getElementById('sitStandBtn').classList.add('hidden');
+        }
+
+        function toggleSittingState() {
+            if (player.isSitting) {
+                standUp();
+            } else {
+                const nearbyChair = CHAIRS.find(c => Math.hypot(c.x - player.x, c.y - player.y) < 40 && !c.occupiedBy);
+                if (nearbyChair) sitOnChair(nearbyChair);
+            }
+        }
+
+        function checkCurrentZone() {
+            const currentZone = ZONES.find(z => 
+                player.x >= z.x && player.x <= z.x + z.w &&
+                player.y >= z.y && player.y <= z.y + z.h
+            );
+
+            const banner = document.getElementById('zoneBanner');
+            const bannerText = document.getElementById('zoneBannerText');
+
+            if (currentZone) {
+                bannerText.innerText = currentZone.name;
+                banner.classList.remove('opacity-0');
+            } else {
+                banner.classList.add('opacity-0');
+            }
+        }
+
+        function checkNearbyInteractions() {
+            // Check if standing near any empty chair
+            const nearChair = CHAIRS.find(c => Math.hypot(c.x - player.x, c.y - player.y) < 45 && !c.occupiedBy);
+            const sitBtn = document.getElementById('sitStandBtn');
+
+            if (nearChair && !player.isSitting) {
+                sitBtn.classList.remove('hidden');
+                document.getElementById('sitBtnText').innerText = 'Sentar na Cadeira';
+            } else if (!player.isSitting) {
+                sitBtn.classList.add('hidden');
+            }
+
+            // Check proximity to NPCs
+            npcs.forEach(npc => {
+                const dist = Math.hypot(npc.x - player.x, npc.y - player.y);
+                if (dist < 70) {
+                    // Trigger proximity audio indicator occasionally
+                    if (!npc.isNearPlayer) {
+                        npc.isNearPlayer = true;
+                        audio.playChime();
+                        addChatMessage('proximidade', `${npc.name}`, `[Proximidade] Olá, ${player.name}! Como estão as coisas?`);
+                    }
+                } else {
+                    npc.isNearPlayer = false;
+                }
+            });
+        }
+
+        function updateNPCs() {
+            npcs.forEach(npc => {
+                // Speech bubble timer decay
+                if (npc.speechTimer > 0) {
+                    npc.speechTimer -= 16; // approx 60fps frame delta
+                    if (npc.speechTimer <= 0) {
+                        npc.speechBubble = null;
+                    }
+                }
+
+                // Random Autonomous behavior every few seconds
+                if (Math.random() < 0.002) {
+                    const phrases = [
+                        'Foco total na sprint!',
+                        'Alguém viu a atualização da documentação?',
+                        'Vou buscar uma xícara de café já volto.',
+                        'Design aprovado pelo cliente! 🎉',
+                        'Alguém para trocar uma ideia no lounge?'
+                    ];
+                    npc.speechBubble = phrases[Math.floor(Math.random() * phrases.length)];
+                    npc.speechTimer = 8000;
+                }
+            });
+        }
+
+        function renderMap() {
+            ctx.clearRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+
+            // 1. Draw Office Floor Background Grid Pattern
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.2)';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            for (let x = 0; x < MAP_WIDTH; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, MAP_HEIGHT);
+                ctx.stroke();
+            }
+            for (let y = 0; y < MAP_HEIGHT; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(MAP_WIDTH, y);
+                ctx.stroke();
+            }
+
+            // 2. Render Zone Flooring Rugs & Labels
+            ZONES.forEach(zone => {
+                ctx.fillStyle = zone.color;
+                ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+
+                // Zone Title Watermark
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.2)';
+                ctx.font = 'bold 16px "Plus Jakarta Sans"';
+                ctx.fillText(zone.name.toUpperCase(), zone.x + 15, zone.y + 30);
+            });
+
+            // 3. Render Chairs
+            CHAIRS.forEach(chair => {
+                ctx.fillStyle = chair.occupiedBy ? '#334155' : '#1e293b';
+                ctx.beginPath();
+                ctx.arc(chair.x, chair.y, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = chair.occupiedBy ? '#475569' : '#0d9488';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Small chair cushion accent
+                ctx.fillStyle = '#475569';
+                ctx.beginPath();
+                ctx.arc(chair.x, chair.y, 7, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 4. Render Furniture & Walls
+            OBSTACLES.forEach(obs => {
+                ctx.fillStyle = obs.type === 'meeting_table' ? '#1e293b' : (obs.type === 'coffee' ? '#27272a' : '#1e293b');
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+
+                if (obs.label) {
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '11px "Plus Jakarta Sans"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(obs.label, obs.x + obs.w / 2, obs.y + obs.h / 2 + 4);
+                }
+            });
+
+            // 5. Render Mouse Target Waypoint Ring
+            if (player.targetX !== null && player.targetY !== null) {
+                ctx.strokeStyle = 'rgba(20, 184, 166, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(player.targetX, player.targetY, 8, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // 6. Draw Avatars (NPCs + Player)
+            const allEntities = [...npcs, player];
+            allEntities.forEach(ent => {
+                // Proximity Ring if near Player
+                if (ent.id !== 'player') {
+                    const dist = Math.hypot(ent.x - player.x, ent.y - player.y);
+                    if (dist < 70) {
+                        ctx.strokeStyle = 'rgba(20, 184, 166, 0.4)';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(ent.x, ent.y, ent.radius + 10, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+
+                // Avatar Body Circle
+                ctx.fillStyle = ent.color;
+                ctx.beginPath();
+                ctx.arc(ent.x, ent.y, ent.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Avatar Accessories
+                if (ent.accessory === 'glasses') {
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(ent.x - 10, ent.y - 4, 8, 4);
+                    ctx.fillRect(ent.x + 2, ent.y - 4, 8, 4);
+                } else if (ent.accessory === 'headphones') {
+                    ctx.strokeStyle = '#f43f5e';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(ent.x, ent.y, ent.radius + 2, Math.PI, 0);
+                    ctx.stroke();
+                } else if (ent.accessory === 'hat') {
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(ent.x - 12, ent.y - 18, 24, 6);
+                }
+
+                // Name Tag & Role Label Above Head
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = 'bold 12px "Plus Jakarta Sans"';
+                ctx.textAlign = 'center';
+                ctx.fillText(ent.name, ent.x, ent.y - ent.radius - 12);
+
+                // Speech Bubbles Rendering
+                if (ent.speechBubble) {
+                    ctx.font = '11px "Plus Jakarta Sans"';
+                    const textWidth = ctx.measureText(ent.speechBubble).width;
+                    const bubbleW = textWidth + 20;
+                    const bubbleH = 26;
+                    const bubbleX = ent.x - bubbleW / 2;
+                    const bubbleY = ent.y - ent.radius - 48;
+
+                    // Bubble Box
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+                    ctx.strokeStyle = 'rgba(20, 184, 166, 0.8)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.roundRect(bubbleX, bubbleY, bubbleW, bubbleH, 8);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Bubble Text
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fillText(ent.speechBubble, ent.x, bubbleY + 17);
+                }
+            });
+        }
+
+        // Main Animation Game Loop
+        function gameLoop() {
+            updatePlayer();
+            updateNPCs();
+            renderMap();
+            requestAnimationFrame(gameLoop);
+        }
+
+        /* ==========================================================================
+           3. SIDEBAR TABS & TEAM DIRECTORY
+           ========================================================================== */
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.sidebar-tab').forEach(el => {
+                el.classList.remove('text-teal-400', 'border-b-2', 'border-teal-500');
+                el.classList.add('text-slate-400');
+            });
+
+            document.getElementById(`tabContent-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tabBtn-${tabId}`);
+            activeBtn.classList.add('text-teal-400', 'border-b-2', 'border-teal-500');
+            activeBtn.classList.remove('text-slate-400');
+
+            if (tabId === 'chat') {
+                document.getElementById('chatBadge').classList.add('hidden');
+            }
+        }
+
+        function renderDirectory() {
+            const listContainer = document.getElementById('directoryList');
+            const allMembers = [player, ...npcs];
+            document.getElementById('activeMemberCount').innerText = allMembers.length;
+
+            listContainer.innerHTML = allMembers.map(m => `
+                <div class="glass-card p-3 rounded-xl flex items-center justify-between hover:border-slate-700 transition">
+                    <div class="flex items-center space-x-3">
+                        <div class="relative">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-slate-950 text-xs shadow" style="background:${m.color}">
+                                ${m.name.charAt(0)}
+                            </div>
+                            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${
+                                m.status === 'Online' ? 'bg-emerald-500' :
+                                m.status === 'Em Reunião' ? 'bg-rose-500' :
+                                m.status === 'Foco Total' ? 'bg-purple-500' : 'bg-amber-500'
+                            }"></span>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-xs text-slate-100 flex items-center gap-1.5">
+                                ${m.name} ${m.id === 'player' ? '<span class="text-[10px] text-teal-400 font-normal">(Você)</span>' : ''}
+                            </div>
+                            <div class="text-[11px] text-slate-400">${m.role} • <span class="text-slate-300 font-medium">${m.status}</span></div>
+                        </div>
+                    </div>
+                    ${m.id !== 'player' ? `
+                        <button onclick="teleportToMember('${m.id}')" class="px-2.5 py-1 text-[11px] bg-slate-800 hover:bg-teal-500/20 text-slate-300 hover:text-teal-300 border border-slate-700 rounded-lg transition flex items-center gap-1">
+                            <i class="fa-solid fa-location-arrow text-[10px]"></i> Ir até
+                        </button>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function teleportToMember(targetId) {
+            const target = npcs.find(n => n.id === targetId);
+            if (target) {
+                player.targetX = target.x + 30;
+                player.targetY = target.y + 30;
+                if (player.isSitting) standUp();
+            }
+        }
+
+        /* ==========================================================================
+           4. TEAM CHAT SYSTEM
+           ========================================================================== */
+        let activeChatChannel = 'geral';
+        const chatStore = {
+            geral: [
+                { sender: 'Carlos', text: 'Bom dia pessoal! A reunião de alinhamento começa às 10h na Sala Principal.', time: '09:15' },
+                { sender: 'Ana', text: 'Bom dia! Protótipos das novas telas já estão prontos na lousa virtual.', time: '09:18' }
+            ],
+            projetos: [
+                { sender: 'Mariana', text: 'Quadro Kanban atualizado com os cards da próxima release.', time: '08:45' }
+            ],
+            cafe: [
+                { sender: 'Lucas', text: 'Alguém afim de um café no lounge em 5 minutos?', time: '09:30' }
+            ],
+            proximidade: []
+        };
+
+        function setChatChannel(chan) {
+            activeChatChannel = chan;
+            ['geral', 'projetos', 'cafe', 'proximidade'].forEach(c => {
+                const btn = document.getElementById(`chanBtn-${c}`);
+                if (c === chan) {
+                    btn.className = 'px-2.5 py-1 rounded-lg font-medium bg-teal-500/20 text-teal-300 border border-teal-500/30';
+                } else {
+                    btn.className = 'px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:bg-slate-800';
+                }
+            });
+
+            document.getElementById('chatInput').placeholder = `Digitar mensagem em #${chan}...`;
+            renderChatMessages();
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chatMessages');
+            const messages = chatStore[activeChatChannel] || [];
+
+            container.innerHTML = messages.map(msg => `
+                <div class="glass-card p-2.5 rounded-xl space-y-1">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="font-bold text-teal-300">${msg.sender}</span>
+                        <span class="text-slate-500">${msg.time}</span>
+                    </div>
+                    <p class="text-slate-200 text-xs">${msg.text}</p>
+                </div>
+            `).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendChatMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            addChatMessage(activeChatChannel, player.name, text);
+            input.value = '';
+
+            // Set speech bubble over player
+            player.speechBubble = text;
+            setTimeout(() => { player.speechBubble = null; }, 6000);
+        }
+
+        function addChatMessage(channel, sender, text) {
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            if (!chatStore[channel]) chatStore[channel] = [];
+            chatStore[channel].push({ sender, text, time });
+
+            if (channel === activeChatChannel) {
+                renderChatMessages();
+            } else {
+                document.getElementById('chatBadge').classList.remove('hidden');
+            }
+        }
+
+        /* ==========================================================================
+           5. KANBAN TASK BOARD (Drag and Drop + LocalStorage Persistence)
+           ========================================================================== */
+        let kanbanTasks = JSON.parse(localStorage.getItem('voffice_kanban_tasks')) || [
+            { id: '1', title: 'Refatorar módulo de videoconferência', assignee: 'Carlos (Dev Lead)', priority: 'Alta', status: 'todo' },
+            { id: '2', title: 'Criar componentes do Design System', assignee: 'Ana (UI/UX)', priority: 'Média', status: 'inProgress' },
+            { id: '3', title: 'Definir metas de engajamento Q3', assignee: 'Mariana (PM)', priority: 'Média', status: 'done' }
+        ];
+
+        function saveKanbanTasks() {
+            localStorage.setItem('voffice_kanban_tasks', JSON.stringify(kanbanTasks));
+            renderKanban();
+        }
+
+        function renderKanban() {
+            const todoContainer = document.getElementById('col-todo');
+            const inProgContainer = document.getElementById('col-inProgress');
+            const doneContainer = document.getElementById('col-done');
+
+            todoContainer.innerHTML = '';
+            inProgContainer.innerHTML = '';
+            doneContainer.innerHTML = '';
+
+            let counts = { todo: 0, inProgress: 0, done: 0 };
+
+            kanbanTasks.forEach(task => {
+                counts[task.status]++;
+                const card = document.createElement('div');
+                card.className = 'glass-card p-3 rounded-xl cursor-grab active:cursor-grabbing border border-slate-700/60 shadow hover:border-teal-500/50 transition';
+                card.draggable = true;
+                card.ondragstart = (e) => e.dataTransfer.setData('text/plain', task.id);
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            task.priority === 'Alta' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                            task.priority === 'Média' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                            'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        }">${task.priority}</span>
+                        <button onclick="deleteTask('${task.id}')" class="text-slate-500 hover:text-rose-400 transition text-xs">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <h4 class="font-semibold text-xs text-slate-100 mb-2">${task.title}</h4>
+                    <div class="flex items-center justify-between text-[11px] text-slate-400">
+                        <span class="flex items-center gap-1"><i class="fa-regular fa-user text-[10px]"></i> ${task.assignee}</span>
+                    </div>
+                `;
+
+                if (task.status === 'todo') todoContainer.appendChild(card);
+                else if (task.status === 'inProgress') inProgContainer.appendChild(card);
+                else if (task.status === 'done') doneContainer.appendChild(card);
+            });
+
+            document.getElementById('todoCount').innerText = counts.todo;
+            document.getElementById('inProgressCount').innerText = counts.inProgress;
+            document.getElementById('doneCount').innerText = counts.done;
+        }
+
+        function allowDropKanban(e) {
+            e.preventDefault();
+        }
+
+        function dropKanban(e, newStatus) {
+            e.preventDefault();
+            const taskId = e.dataTransfer.getData('text/plain');
+            const task = kanbanTasks.find(t => t.id === taskId);
+            if (task) {
+                task.status = newStatus;
+                saveKanbanTasks();
+            }
+        }
+
+        function deleteTask(id) {
+            kanbanTasks = kanbanTasks.filter(t => t.id !== id);
+            saveKanbanTasks();
+        }
+
+        function openAddTaskModal() {
+            document.getElementById('addTaskModal').classList.remove('hidden');
+        }
+
+        function closeAddTaskModal() {
+            document.getElementById('addTaskModal').classList.add('hidden');
+        }
+
+        function handleCreateTask(e) {
+            e.preventDefault();
+            const title = document.getElementById('taskTitleInput').value;
+            const assignee = document.getElementById('taskAssigneeSelect').value;
+            const priority = document.getElementById('taskPrioritySelect').value;
+
+            kanbanTasks.push({
+                id: Date.now().toString(),
+                title,
+                assignee,
+                priority,
+                status: 'todo'
+            });
+
+            saveKanbanTasks();
+            closeAddTaskModal();
+            document.getElementById('taskTitleInput').value = '';
+        }
+
+        /* ==========================================================================
+           6. INTERACTIVE WHITEBOARD SYSTEM
+           ========================================================================== */
+        const wbCanvas = document.getElementById('whiteboardCanvas');
+        const wbCtx = wbCanvas.getContext('2d');
+        let isDrawing = false;
+        let wbTool = 'pen';
+        let wbColor = '#38bdf8';
+
+        function resizeWhiteboard() {
+            const rect = wbCanvas.parentElement.getBoundingClientRect();
+            wbCanvas.width = rect.width;
+            wbCanvas.height = rect.height;
+        }
+
+        function setWBTool(tool) {
+            wbTool = tool;
+            document.getElementById('wbTool-pen').className = tool === 'pen' ? 'w-7 h-7 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/40 flex items-center justify-center text-xs' : 'w-7 h-7 rounded-lg hover:bg-slate-800 text-slate-400 flex items-center justify-center text-xs';
+            document.getElementById('wbTool-eraser').className = tool === 'eraser' ? 'w-7 h-7 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/40 flex items-center justify-center text-xs' : 'w-7 h-7 rounded-lg hover:bg-slate-800 text-slate-400 flex items-center justify-center text-xs';
+        }
+
+        function setWBColor(color) {
+            wbColor = color;
+            if (wbTool === 'eraser') setWBTool('pen');
+        }
+
+        wbCanvas.addEventListener('pointerdown', (e) => {
+            isDrawing = true;
+            const rect = wbCanvas.getBoundingClientRect();
+            wbCtx.beginPath();
+            wbCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        });
+
+        wbCanvas.addEventListener('pointermove', (e) => {
+            if (!isDrawing) return;
+            const rect = wbCanvas.getBoundingClientRect();
+            wbCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            wbCtx.strokeStyle = wbTool === 'eraser' ? '#0f172a' : wbColor;
+            wbCtx.lineWidth = wbTool === 'eraser' ? 16 : 3;
+            wbCtx.lineCap = 'round';
+            wbCtx.stroke();
+        });
+
+        wbCanvas.addEventListener('pointerup', () => isDrawing = false);
+
+        function clearWhiteboard() {
+            wbCtx.clearRect(0, 0, wbCanvas.width, wbCanvas.height);
+            document.getElementById('stickyNotesContainer').innerHTML = '';
+        }
+
+        function addStickyNotePrompt() {
+            const noteText = prompt('Digite o texto para a nota adesiva (Post-it):', 'Nova Ideia');
+            if (!noteText) return;
+
+            const container = document.getElementById('stickyNotesContainer');
+            const note = document.createElement('div');
+            note.className = 'absolute bg-amber-300 text-slate-950 p-2.5 rounded-lg shadow-xl text-xs font-semibold w-28 cursor-move pointer-events-auto border border-amber-400';
+            note.style.left = '30px';
+            note.style.top = '30px';
+            note.innerText = noteText;
+
+            // Make draggable inside container
+            let isDraggingNote = false;
+            let offsetX, offsetY;
+
+            note.addEventListener('pointerdown', (e) => {
+                isDraggingNote = true;
+                offsetX = e.clientX - note.offsetLeft;
+                offsetY = e.clientY - note.offsetTop;
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (!isDraggingNote) return;
+                note.style.left = `${e.clientX - offsetX}px`;
+                note.style.top = `${e.clientY - offsetY}px`;
+            });
+
+            window.addEventListener('pointerup', () => isDraggingNote = false);
+            container.appendChild(note);
+        }
+
+        /* ==========================================================================
+           7. POMODORO TIMER & PROFILE SETTINGS
+           ========================================================================== */
+        let pomoSeconds = 25 * 60;
+        let pomoInterval = null;
+
+        function togglePomodoro() {
+            const btn = document.getElementById('pomoPlayBtn');
+            if (pomoInterval) {
+                clearInterval(pomoInterval);
+                pomoInterval = null;
+                btn.innerHTML = '<i class="fa-solid fa-play text-[10px]"></i>';
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-pause text-[10px]"></i>';
+                pomoInterval = setInterval(() => {
+                    pomoSeconds--;
+                    const mins = Math.floor(pomoSeconds / 60).toString().padStart(2, '0');
+                    const secs = (pomoSeconds % 60).toString().padStart(2, '0');
+                    document.getElementById('pomoTimeDisplay').innerText = `${mins}:${secs}`;
+
+                    if (pomoSeconds <= 0) {
+                        clearInterval(pomoInterval);
+                        pomoInterval = null;
+                        audio.playChime();
+                        alert('Tempo de Pomodoro concluído! Hora de um descanso.');
+                        pomoSeconds = 25 * 60;
+                    }
+                }, 1000);
+            }
+        }
+
+        function openAvatarModal() {
+            document.getElementById('avatarModal').classList.remove('hidden');
+        }
+
+        function closeAvatarModal() {
+            document.getElementById('avatarModal').classList.add('hidden');
+        }
+
+        function saveAvatarSettings() {
+            player.name = document.getElementById('avatarNameInput').value || 'Você';
+            player.color = document.getElementById('avatarColorInput').value;
+            player.accessory = document.getElementById('avatarAccessorySelect').value;
+
+            document.getElementById('headerAvatarPreview').innerText = player.name.charAt(0).toUpperCase();
+            document.getElementById('headerAvatarPreview').style.backgroundColor = player.color;
+
+            renderDirectory();
+            closeAvatarModal();
+        }
+
+        function updateUserStatus(statusVal) {
+            player.status = statusVal;
+            const dot = document.getElementById('headerStatusDot');
+
+            if (statusVal === 'Online') dot.className = 'absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-slate-900';
+            else if (statusVal === 'Em Reunião') dot.className = 'absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-rose-500 border-2 border-slate-900';
+            else if (statusVal === 'Foco Total') dot.className = 'absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-purple-500 border-2 border-slate-900';
+            else dot.className = 'absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-amber-500 border-2 border-slate-900';
+
+            renderDirectory();
+        }
+
+        function toggleMedia(type) {
+            const btn = document.getElementById(type === 'mic' ? 'toggleMicBtn' : 'toggleCamBtn');
+            btn.classList.toggle('bg-rose-500/20');
+            btn.classList.toggle('text-rose-400');
+        }
+
+        /* ==========================================================================
+           8. INITIALIZATION
+           ========================================================================== */
+        window.onload = function() {
+            resizeCanvas();
+            renderDirectory();
+            renderChatMessages();
+            renderKanban();
+            setTimeout(resizeWhiteboard, 200);
+
+            // Start game animation canvas loop
+            requestAnimationFrame(gameLoop);
+        };
+
+        window.onresize = function() {
+            resizeCanvas();
+            resizeWhiteboard();
+        };
+    </script>
+</body>
+</html>
